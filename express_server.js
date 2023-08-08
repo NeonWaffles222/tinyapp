@@ -14,13 +14,24 @@ function generateRandomString() {
   return generateRandomString();
 }
 
+function isValidURL(url) {
+  let testURL;
+
+  try {
+    testURL = new URL(url);
+  } catch (_) {
+    return false;
+  }
+  return true;
+}
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.redirect("/urls");
 });
 
 app.get("/urls", (req, res) => {
@@ -48,9 +59,14 @@ app.get("/urls.json", (req, res) => {
 
 
 app.post("/urls", (req, res) => {
-  const shortURL = generateRandomString();
-  urlDatabase[shortURL] = req.body.longURL;
-  res.redirect(`/urls/${shortURL}`);
+  if (!isValidURL(req.body.longURL)) {
+    console.log("Invalid URL");
+    res.redirect("/urls/new");
+  } else {
+    const shortURL = generateRandomString();
+    urlDatabase[shortURL] = req.body.longURL;
+    res.redirect(`/urls/${shortURL}`);
+  }
 });
 
 app.post("/urls/:id/delete", (req, res) => {
