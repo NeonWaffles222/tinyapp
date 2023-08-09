@@ -14,6 +14,7 @@ function generateRandomString() {
   return generateRandomString();
 }
 
+//Checks if the URL is valid
 function isValidURL(url) {
   let testURL;
 
@@ -66,6 +67,16 @@ app.post("/urls", (req, res) => {
     const shortURL = generateRandomString();
     urlDatabase[shortURL] = req.body.longURL;
     res.redirect(`/urls/${shortURL}`);
+  }
+});
+
+app.post("/urls/:id", (req, res) => {
+  if (!isValidURL(req.body.longURL)) {
+    console.log("Invalid URL");
+    res.redirect(`/urls/${req.params.id}`);
+  } else {
+    urlDatabase[req.params.id] = req.body.longURL;
+    res.redirect("/urls");
   }
 });
 
