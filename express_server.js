@@ -32,7 +32,7 @@ const isValidURL = (url) => {
 // returns the user if the provided key has the provided value
 const userLookup = (key, value) => {
   for (let user in users) {
-    if (user[key] === value) {
+    if (users[user][key] === value) {
       return user;
     }
   }
@@ -68,7 +68,6 @@ app.get("/urls", (req, res) => {
     user: users[req.cookies["user_id"]],
     urls: urlDatabase
   };
-  console.log(templateVars.username);
   res.render("urls_index", templateVars);
 });
 
@@ -93,6 +92,14 @@ app.get("/register", (req, res) => {
     user: users[req.cookies["user_id"]]
   };
   res.render("user_new", templateVars);
+});
+
+app.get("/login", (req, res) => {
+  const templateVars = {
+    user: users[req.cookies["user_id"]]
+  };
+
+  res.render("user_login", templateVars);
 });
 
 app.get("/u/:id", (req, res) => {
@@ -132,7 +139,22 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  res.cookie("username", req.body.username);
+  const userID = userLookup("email", req.body.email);
+  if (userID === null) {
+    console.log("User not found");
+    res.status(400);
+    res.redirect("/login");
+    return;
+  }
+
+  if (users[userID]["password"] !== req.body.password) {
+    console.log("Wrong password");
+    res.status(400);
+    res.redirect("/login");
+    return;
+  }
+
+  res.cookie("user_id", userID);
   res.redirect("/urls");
 });
 
