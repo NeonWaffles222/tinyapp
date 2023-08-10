@@ -39,9 +39,25 @@ const userLookup = (key, value) => {
   return null;
 };
 
+const urlsForUser = (id) => {
+  let userUrls = {};
+  for (let url in urlDatabase) {
+    if (urlDatabase[url]["userID"] === id) {
+      userUrls[url] = urlDatabase[url];
+    }
+  }
+  return userUrls;
+};
+
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  "b2xVn2": {
+    longURL: "http://www.lighthouselabs.ca",
+    userID: "h5j3xa"
+  },
+  "9sm5xK": {
+    longURL: "http://www.google.com",
+    userID: "sk4h7p"
+  }
 };
 
 const users = {
@@ -70,10 +86,16 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
+  if (!req.cookies["user_id"]) {
+    res.send(`Please login or register to veiw URLs <a href=\"/login\">Login</a> <a href=\"/register\">Register</a>`);
+    res.end();
+    return;
+  }
   const templateVars = {
     user: users[req.cookies["user_id"]],
-    urls: urlDatabase
+    urls: urlsForUser(req.cookies["user_id"])
   };
+  console.log(urlsForUser(req.cookies["user_id"]));
   res.render("urls_index", templateVars);
 });
 
@@ -89,9 +111,25 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
+  if (!urlDatabase[req.params.id]) {
+    res.send(`This URL does not exist <a href=\"/urls\">Home</a>`);
+    res.end();
+    return;
+  }
+  if (!req.cookies["user_id"]) {
+    res.send(`Please login or register to veiw URLs <a href=\"/login\">Login</a> <a href=\"/register\">Register</a>`);
+    res.end();
+    return;
+  }
+
+  if (req.cookies["user_id"] !== urlDatabase[req.params.id]["userID"]) {
+    res.send(`This URL does not belong to you <a href=\"/urls\">Home</a>`);
+    res.end();
+    return;
+  }
   const templateVars = {
     id: req.params.id,
-    longURL: urlDatabase[req.params.id],
+    longURL: urlDatabase[req.params.id]["longURL"],
     user: users[req.cookies["user_id"]]
   };
   res.render("urls_show", templateVars);
@@ -126,7 +164,7 @@ app.get("/u/:id", (req, res) => {
     res.end();
     return;
   }
-  const longURL = urlDatabase[req.params.id];
+  const longURL = urlDatabase[req.params.id].longURL;
   res.redirect(longURL);
 });
 
@@ -153,8 +191,18 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/urls/:id", (req, res) => {
+  if (!urlDatabase[req.params.id]) {
+    res.send(`This URL does not exist <a href=\"/urls\">Home</a>`);
+    res.end();
+    return;
+  }
   if (!req.cookies["user_id"]) {
-    res.send('Must be logged in to edit urls <a href=\"/login\">Login</a>');
+    res.send('Must be logged in <a href=\"/login\">Login</a>');
+    res.end();
+    return;
+  }
+  if (req.cookies["user_id"] !== urlDatabase[req.params.id]["userID"]) {
+    res.send(`This URL does not belong to you <a href=\"/urls\">Home</a>`);
     res.end();
     return;
   }
@@ -169,8 +217,18 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.post("/urls/:id/delete", (req, res) => {
+  if (!urlDatabase[req.params.id]) {
+    res.send(`This URL does not exist <a href=\"/urls\">Home</a>`);
+    res.end();
+    return;
+  }
   if (!req.cookies["user_id"]) {
-    res.send('Must be logged in to delete urls <a href=\"/login\">Login</a>');
+    res.send('Must be logged in <a href=\"/login\">Login</a>');
+    res.end();
+    return;
+  }
+  if (req.cookies["user_id"] !== urlDatabase[req.params.id]["userID"]) {
+    res.send(`This URL does not belong to you <a href=\"/urls\">Home</a>`);
     res.end();
     return;
   }
