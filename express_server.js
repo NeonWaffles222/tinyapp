@@ -56,6 +56,12 @@ const users = {
     username: "Aurbur3",
     email: "chloe@hotmail.com",
     password: "wolf"
+  },
+  "sk4h7p": {
+    id: "sk4h7p",
+    username: "Admin",
+    email: "noahm27@gmail.com",
+    password: "noah"
   }
 };
 
@@ -72,6 +78,10 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
+  if (!req.cookies["user_id"]) {
+    res.redirect("/login");
+    return;
+  }
   const templateVars = {
     user: users[req.cookies["user_id"]]
   };
@@ -88,6 +98,10 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
+  if (req.cookies["user_id"]) {
+    res.redirect("/urls");
+    return;
+  }
   const templateVars = {
     user: users[req.cookies["user_id"]]
   };
@@ -95,6 +109,10 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
+  if (req.cookies["user_id"]) {
+    res.redirect("/urls");
+    return;
+  }
   const templateVars = {
     user: users[req.cookies["user_id"]]
   };
@@ -103,6 +121,11 @@ app.get("/login", (req, res) => {
 });
 
 app.get("/u/:id", (req, res) => {
+  if (!urlDatabase[req.params.id]) {
+    res.send(`Short URL does not exist <a href=\"/urls\">Back</a>`);
+    res.end();
+    return;
+  }
   const longURL = urlDatabase[req.params.id];
   res.redirect(longURL);
 });
@@ -113,9 +136,15 @@ app.get("/urls.json", (req, res) => {
 
 
 app.post("/urls", (req, res) => {
+  if (!req.cookies["user_id"]) {
+    res.send('Must be logged in to create urls <a href=\"/login\">Login</a>');
+    res.end();
+    return;
+  }
   if (!isValidURL(req.body.longURL)) {
-    console.log("Invalid URL");
-    res.redirect("/urls/new");
+    res.send(`Invalid URL <a href=\"/urls/new\">Back</a>`);
+    res.end();
+    return;
   } else {
     const shortURL = generateRandomString();
     urlDatabase[shortURL] = req.body.longURL;
@@ -124,9 +153,15 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/urls/:id", (req, res) => {
+  if (!req.cookies["user_id"]) {
+    res.send('Must be logged in to edit urls <a href=\"/login\">Login</a>');
+    res.end();
+    return;
+  }
   if (!isValidURL(req.body.longURL)) {
-    console.log("Invalid URL");
-    res.redirect(`/urls/${req.params.id}`);
+    res.send(`Invalid URL <a href=\"/urls/${req.params.id}\">Back</a>`);
+    res.end();
+    return;
   } else {
     urlDatabase[req.params.id] = req.body.longURL;
     res.redirect("/urls");
@@ -134,6 +169,11 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.post("/urls/:id/delete", (req, res) => {
+  if (!req.cookies["user_id"]) {
+    res.send('Must be logged in to delete urls <a href=\"/login\">Login</a>');
+    res.end();
+    return;
+  }
   delete urlDatabase[req.params.id];
   res.redirect("/urls");
 });
@@ -141,16 +181,16 @@ app.post("/urls/:id/delete", (req, res) => {
 app.post("/login", (req, res) => {
   const userID = userLookup("email", req.body.email);
   if (userID === null) {
-    console.log("User not found");
+    res.send(`Email not found <a href=\"/login\">Back</a>`);
     res.status(403);
-    res.redirect("/login");
+    res.end();
     return;
   }
 
   if (users[userID]["password"] !== req.body.password) {
-    console.log("Wrong password");
+    res.send(`Wrong password <a href=\"/login\">Back</a>`);
     res.status(403);
-    res.redirect("/login");
+    res.end();
     return;
   }
 
@@ -170,16 +210,15 @@ app.post("/register", (req, res) => {
   //   res.redirect("/register");
   // }
 
-  if (!userLookup("email", req.body.email)) {
-    console.log("email in use");
-    res.status(400);
-    res.redirect("/register");
+  if (userLookup("email", req.body.email) !== null) {
+    res.status(400).send(`Email is already in use <a href=\"/register\">Back</a>`);
+    res.end();
     return;
   }
 
-  if (!userLookup("username", req.body.username)) {
-    res.status(400);
-    res.redirect("/register");
+  if (userLookup("username", req.body.username) !== null) {
+    res.status(400).send(`Username is already in use <a href=\"/register\">Back</a>`);
+    res.end();
     return;
   }
 
