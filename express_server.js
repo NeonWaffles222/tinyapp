@@ -9,17 +9,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan('dev'));
 
-function generateRandomString() {
+const generateRandomString = () => {
   randomString = Math.random().toString(36).slice(2, 8);
   //Check that the random string is not already used in the database
   if (!urlDatabase[randomString] && !users[randomString]) {
     return randomString;
   }
   return generateRandomString();
-}
+};
 
 //Checks if the URL is valid
-function isValidURL(url) {
+const isValidURL = (url) => {
   let testURL;
 
   try {
@@ -28,7 +28,16 @@ function isValidURL(url) {
     return false;
   }
   return true;
-}
+};
+// returns the user if the provided key has the provided value
+const userLookup = (key, value) => {
+  for (let user in users) {
+    if (user[key] === value) {
+      return user;
+    }
+  }
+  return null;
+};
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -39,7 +48,7 @@ const users = {
   "h5j3xa": {
     id: "h5j3xa",
     username: "coolguy52",
-    email: "fuze@gamil.com",
+    email: "fuze@gmail.com",
     password: "tempest"
   },
   "k4hxc5": {
@@ -133,13 +142,25 @@ app.post("/logout", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  for (let user in users) {
-    if (user.email === req.body.email) {
-      console.log("Email already in use");
-      res.redirect("/register");
-      return;
-    }
+  // added "required in the ejs file so this is not needed"
+  // if (req.body.username == "" || req.body.email == "" || req.body.password == "") {
+  //   res.status(400);
+  //   res.redirect("/register");
+  // }
+
+  if (!userLookup("email", req.body.email)) {
+    console.log("email in use");
+    res.status(400);
+    res.redirect("/register");
+    return;
   }
+
+  if (!userLookup("username", req.body.username)) {
+    res.status(400);
+    res.redirect("/register");
+    return;
+  }
+
   const userID = generateRandomString();
   users[userID] = {
     id: userID,
