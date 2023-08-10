@@ -12,7 +12,7 @@ app.use(morgan('dev'));
 function generateRandomString() {
   randomString = Math.random().toString(36).slice(2, 8);
   //Check that the random string is not already used in the database
-  if (!urlDatabase[randomString]) {
+  if (!urlDatabase[randomString] && !users[randomString]) {
     return randomString;
   }
   return generateRandomString();
@@ -35,21 +35,37 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  "h5j3xa": {
+    id: "h5j3xa",
+    username: "coolguy52",
+    email: "fuze@gamil.com",
+    password: "tempest"
+  },
+  "k4hxc5": {
+    id: "k4hxc5",
+    username: "Aurbur3",
+    email: "chloe@hotmail.com",
+    password: "wolf"
+  }
+};
+
 app.get("/", (req, res) => {
   res.redirect("/urls");
 });
 
 app.get("/urls", (req, res) => {
   const templateVars = {
-    username: req.cookies["username"],
+    user: users[req.cookies["user_id"]],
     urls: urlDatabase
   };
+  console.log(templateVars.username);
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
   const templateVars = {
-    username: req.cookies["username"]
+    user: users[req.cookies["user_id"]]
   };
   res.render("urls_new", templateVars);
 });
@@ -58,14 +74,14 @@ app.get("/urls/:id", (req, res) => {
   const templateVars = {
     id: req.params.id,
     longURL: urlDatabase[req.params.id],
-    username: req.cookies["username"]
+    user: users[req.cookies["user_id"]]
   };
   res.render("urls_show", templateVars);
 });
 
 app.get("/register", (req, res) => {
   const templateVars = {
-    username: req.cookies["username"]
+    user: users[req.cookies["user_id"]]
   };
   res.render("user_new", templateVars);
 });
@@ -112,8 +128,27 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("username");
+  res.clearCookie("user_id");
   res.redirect("/urls");
+});
+
+app.post("/register", (req, res) => {
+  for (let user in users) {
+    if (user.email === req.body.email) {
+      console.log("Email already in use");
+      res.redirect("/register");
+      return;
+    }
+  }
+  const userID = generateRandomString();
+  users[userID] = {
+    id: userID,
+    username: req.body.username,
+    email: req.body.email,
+    password: req.body.password
+  };
+  res.cookie("user_id", userID);
+  res.redirect("/");
 });
 
 app.listen(PORT, () => {
