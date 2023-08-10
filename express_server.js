@@ -142,14 +142,14 @@ app.post("/login", (req, res) => {
   const userID = userLookup("email", req.body.email);
   if (userID === null) {
     console.log("User not found");
-    res.status(400);
+    res.status(403);
     res.redirect("/login");
     return;
   }
 
   if (users[userID]["password"] !== req.body.password) {
     console.log("Wrong password");
-    res.status(400);
+    res.status(403);
     res.redirect("/login");
     return;
   }
@@ -160,7 +160,7 @@ app.post("/login", (req, res) => {
 
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id");
-  res.redirect("/urls");
+  res.redirect("/login");
 });
 
 app.post("/register", (req, res) => {
