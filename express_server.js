@@ -1,13 +1,21 @@
 const express = require("express");
-const cookieParser = require('cookie-parser');
+const cookieSession = require('cookie-session');
+const bcrypt = require("bcryptjs");
 const morgan = require('morgan');
+
 const app = express();
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
 app.use(morgan('dev'));
+app.use(cookieSession({
+  name: "session",
+  keys: ["aoiw2hj38ynbjkns"],
+  maxAge: 24 * 60 * 60 * 1000
+}));
+const salt = bcrypt.genSaltSync(10);
+
 
 const generateRandomString = () => {
   randomString = Math.random().toString(36).slice(2, 8);
@@ -49,6 +57,7 @@ const urlsForUser = (id) => {
   return userUrls;
 };
 
+
 const urlDatabase = {
   "b2xVn2": {
     longURL: "http://www.lighthouselabs.ca",
@@ -86,26 +95,26 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.send(`Please login or register to veiw URLs <a href=\"/login\">Login</a> <a href=\"/register\">Register</a>`);
     res.end();
     return;
   }
   const templateVars = {
-    user: users[req.cookies["user_id"]],
-    urls: urlsForUser(req.cookies["user_id"])
+    user: users[req.session.user_id],
+    urls: urlsForUser(req.session.user_id)
   };
-  console.log(urlsForUser(req.cookies["user_id"]));
+  console.log(urlsForUser(req.session.user_id));
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.redirect("/login");
     return;
   }
   const templateVars = {
-    user: users[req.cookies["user_id"]]
+    user: users[req.session.user_id]
   };
   res.render("urls_new", templateVars);
 });
@@ -116,13 +125,13 @@ app.get("/urls/:id", (req, res) => {
     res.end();
     return;
   }
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.send(`Please login or register to veiw URLs <a href=\"/login\">Login</a> <a href=\"/register\">Register</a>`);
     res.end();
     return;
   }
 
-  if (req.cookies["user_id"] !== urlDatabase[req.params.id]["userID"]) {
+  if (req.session.user_id !== urlDatabase[req.params.id]["userID"]) {
     res.send(`This URL does not belong to you <a href=\"/urls\">Home</a>`);
     res.end();
     return;
@@ -130,29 +139,29 @@ app.get("/urls/:id", (req, res) => {
   const templateVars = {
     id: req.params.id,
     longURL: urlDatabase[req.params.id]["longURL"],
-    user: users[req.cookies["user_id"]]
+    user: users[req.session.user_id]
   };
   res.render("urls_show", templateVars);
 });
 
 app.get("/register", (req, res) => {
-  if (req.cookies["user_id"]) {
+  if (req.session.user_id) {
     res.redirect("/urls");
     return;
   }
   const templateVars = {
-    user: users[req.cookies["user_id"]]
+    user: users[req.session.user_id]
   };
   res.render("user_new", templateVars);
 });
 
 app.get("/login", (req, res) => {
-  if (req.cookies["user_id"]) {
+  if (req.session.user_id) {
     res.redirect("/urls");
     return;
   }
   const templateVars = {
-    user: users[req.cookies["user_id"]]
+    user: users[req.session.user_id]
   };
 
   res.render("user_login", templateVars);
@@ -174,7 +183,7 @@ app.get("/urls.json", (req, res) => {
 
 
 app.post("/urls", (req, res) => {
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.send('Must be logged in to create urls <a href=\"/login\">Login</a>');
     res.end();
     return;
@@ -196,12 +205,12 @@ app.post("/urls/:id", (req, res) => {
     res.end();
     return;
   }
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.send('Must be logged in <a href=\"/login\">Login</a>');
     res.end();
     return;
   }
-  if (req.cookies["user_id"] !== urlDatabase[req.params.id]["userID"]) {
+  if (req.session.user_id !== urlDatabase[req.params.id]["userID"]) {
     res.send(`This URL does not belong to you <a href=\"/urls\">Home</a>`);
     res.end();
     return;
@@ -222,12 +231,12 @@ app.post("/urls/:id/delete", (req, res) => {
     res.end();
     return;
   }
-  if (!req.cookies["user_id"]) {
+  if (!req.session.user_id) {
     res.send('Must be logged in <a href=\"/login\">Login</a>');
     res.end();
     return;
   }
-  if (req.cookies["user_id"] !== urlDatabase[req.params.id]["userID"]) {
+  if (req.session.user_id !== urlDatabase[req.params.id]["userID"]) {
     res.send(`This URL does not belong to you <a href=\"/urls\">Home</a>`);
     res.end();
     return;
@@ -244,20 +253,19 @@ app.post("/login", (req, res) => {
     res.end();
     return;
   }
-
-  if (users[userID]["password"] !== req.body.password) {
+  if (!bcrypt.compareSync(req.body.password, users[userID]["password"])) {
     res.send(`Wrong password <a href=\"/login\">Back</a>`);
     res.status(403);
     res.end();
     return;
   }
 
-  res.cookie("user_id", userID);
+  req.session.user_id = userID;
   res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
+  req.session = null;
   res.redirect("/login");
 });
 
@@ -285,9 +293,9 @@ app.post("/register", (req, res) => {
     id: userID,
     username: req.body.username,
     email: req.body.email,
-    password: req.body.password
+    password: bcrypt.hashSync(req.body.password, salt)
   };
-  res.cookie("user_id", userID);
+  req.session.user_id = userID;
   res.redirect("/");
 });
 
