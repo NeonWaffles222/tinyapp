@@ -22,7 +22,7 @@ const isValidURL = (url) => {
 const userLookup = (key, value, users) => {
   for (let user in users) {
     if (users[user][key] === value) {
-      return user;
+      return users[user];
     }
   }
   return null;
