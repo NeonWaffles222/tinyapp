@@ -165,7 +165,10 @@ app.post("/urls", (req, res) => {
   } else {
     // Creates a new short url
     const shortURL = generateRandomString(urlDatabase, users);
-    urlDatabase[shortURL] = req.body.longURL;
+    urlDatabase[shortURL] = {
+      "longURL": req.body.longURL,
+      "userID": req.session.user_id
+    };
     res.redirect(`/urls/${shortURL}`);
   }
 });
