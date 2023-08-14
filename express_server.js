@@ -17,6 +17,7 @@ app.use(cookieSession({
 }));
 const salt = bcrypt.genSaltSync(10);
 
+// default urls used for testing
 const urlDatabase = {
   "b2xVn2": {
     longURL: "http://www.lighthouselabs.ca",
@@ -28,6 +29,7 @@ const urlDatabase = {
   }
 };
 
+// default users used for testing
 const users = {
   "h5j3xa": {
     id: "h5j3xa",
@@ -43,11 +45,14 @@ const users = {
   },
 };
 
+// just redirects to /urls
 app.get("/", (req, res) => {
   res.redirect("/urls");
 });
 
+// Home page. Asks user to login or register if not logged in
 app.get("/urls", (req, res) => {
+  // checks cookies to see if the user is logged in
   if (!req.session.user_id) {
     res.send(`Please login or register to veiw URLs <a href=\"/login\">Login</a> <a href=\"/register\">Register</a>`);
     res.end();
@@ -60,7 +65,9 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
+//  Page to add a new url. Redirects to login page if not logged in
 app.get("/urls/new", (req, res) => {
+  // checks cookies to see if the user is logged in
   if (!req.session.user_id) {
     res.redirect("/login");
     return;
@@ -71,18 +78,21 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new", templateVars);
 });
 
+// Page to view URL info and edit it.
 app.get("/urls/:id", (req, res) => {
-  if (!urlDatabase[req.params.id]) {
-    res.send(`This URL does not exist <a href=\"/urls\">Home</a>`);
-    res.end();
-    return;
-  }
+  // checks cookies to see if the user is logged in
   if (!req.session.user_id) {
     res.send(`Please login or register to veiw URLs <a href=\"/login\">Login</a> <a href=\"/register\">Register</a>`);
     res.end();
     return;
   }
-
+  // checks the database to make sure the requested URL exists
+  if (!urlDatabase[req.params.id]) {
+    res.send(`This URL does not exist <a href=\"/urls\">Home</a>`);
+    res.end();
+    return;
+  }
+  // Checks if the user has permission to view this URL.
   if (req.session.user_id !== urlDatabase[req.params.id]["userID"]) {
     res.send(`This URL does not belong to you <a href=\"/urls\">Home</a>`);
     res.end();
@@ -96,7 +106,9 @@ app.get("/urls/:id", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
+// Page to register as a new user.
 app.get("/register", (req, res) => {
+  // If the user is already logged in sends them to the home page.
   if (req.session.user_id) {
     res.redirect("/urls");
     return;
@@ -107,7 +119,9 @@ app.get("/register", (req, res) => {
   res.render("user_new", templateVars);
 });
 
+// Page to login.
 app.get("/login", (req, res) => {
+  // If the user is already logged in sends them to the home page.
   if (req.session.user_id) {
     res.redirect("/urls");
     return;
@@ -115,11 +129,12 @@ app.get("/login", (req, res) => {
   const templateVars = {
     user: users[req.session.user_id]
   };
-
   res.render("user_login", templateVars);
 });
 
+// Will redirect to the long URL that is linked to this short URL.
 app.get("/u/:id", (req, res) => {
+  // checks the database to make sure the requested URL exists
   if (!urlDatabase[req.params.id]) {
     res.send(`Short URL does not exist <a href=\"/urls\">Back</a>`);
     res.end();
@@ -129,65 +144,79 @@ app.get("/u/:id", (req, res) => {
   res.redirect(longURL);
 });
 
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
+// View all URLS in the database
+// app.get("/urls.json", (req, res) => {
+//   res.json(urlDatabase);
+// });
 
-
+// For adding a new short URL
 app.post("/urls", (req, res) => {
+  // Checks if the user is logged in
   if (!req.session.user_id) {
     res.send('Must be logged in to create urls <a href=\"/login\">Login</a>');
     res.end();
     return;
   }
+  // Checks if the URL is valid
   if (!isValidURL(req.body.longURL)) {
     res.send(`Invalid URL <a href=\"/urls/new\">Back</a>`);
     res.end();
     return;
   } else {
+    // Creates a new short url
     const shortURL = generateRandomString(urlDatabase, users);
     urlDatabase[shortURL] = req.body.longURL;
     res.redirect(`/urls/${shortURL}`);
   }
 });
 
+// Edits a URL
 app.post("/urls/:id", (req, res) => {
-  if (!urlDatabase[req.params.id]) {
-    res.send(`This URL does not exist <a href=\"/urls\">Home</a>`);
-    res.end();
-    return;
-  }
+  // Checks if the user is logged in
   if (!req.session.user_id) {
     res.send('Must be logged in <a href=\"/login\">Login</a>');
     res.end();
     return;
   }
+  // Checks if the URL exists
+  if (!urlDatabase[req.params.id]) {
+    res.send(`This URL does not exist <a href=\"/urls\">Home</a>`);
+    res.end();
+    return;
+  }
+  // Checks if the user has permission to edit this URL.
   if (req.session.user_id !== urlDatabase[req.params.id]["userID"]) {
     res.send(`This URL does not belong to you <a href=\"/urls\">Home</a>`);
     res.end();
     return;
   }
+  // Checks if the new URL is valid
   if (!isValidURL(req.body.longURL)) {
     res.send(`Invalid URL <a href=\"/urls/${req.params.id}\">Back</a>`);
     res.end();
     return;
   } else {
+    // Updates the URL
     urlDatabase[req.params.id] = req.body.longURL;
     res.redirect("/urls");
   }
 });
 
+// Removes a URL
 app.post("/urls/:id/delete", (req, res) => {
-  if (!urlDatabase[req.params.id]) {
-    res.send(`This URL does not exist <a href=\"/urls\">Home</a>`);
-    res.end();
-    return;
-  }
+  // Checks if the user is logged in
   if (!req.session.user_id) {
     res.send('Must be logged in <a href=\"/login\">Login</a>');
     res.end();
     return;
   }
+  // Checks if the URL exists
+  if (!urlDatabase[req.params.id]) {
+    res.send(`This URL does not exist <a href=\"/urls\">Home</a>`);
+    res.end();
+    return;
+  }
+  // Checks if the user has permission to delete this URL.
   if (req.session.user_id !== urlDatabase[req.params.id]["userID"]) {
     res.send(`This URL does not belong to you <a href=\"/urls\">Home</a>`);
     res.end();
@@ -197,26 +226,30 @@ app.post("/urls/:id/delete", (req, res) => {
   res.redirect("/urls");
 });
 
+// Logs the user in
 app.post("/login", (req, res) => {
   const userID = userLookup("email", req.body.email, users);
+  // Checks if the user exists
   if (userID === null) {
     res.send(`Email not found <a href=\"/login\">Back</a>`);
     res.status(403);
     res.end();
     return;
   }
+  // Checks if the passwords match
   if (!bcrypt.compareSync(req.body.password, users[userID]["password"])) {
     res.send(`Wrong password <a href=\"/login\">Back</a>`);
     res.status(403);
     res.end();
     return;
   }
-
+  // creates a new cookie for the user
   req.session.user_id = userID;
   res.redirect("/urls");
 });
 
 app.post("/logout", (req, res) => {
+  // Removes the users cookie
   req.session = null;
   res.redirect("/login");
 });
@@ -228,18 +261,19 @@ app.post("/register", (req, res) => {
   //   res.redirect("/register");
   // }
 
+  // Checks if the email is already in use
   if (userLookup("email", req.body.email, users) !== null) {
     res.status(400).send(`Email is already in use <a href=\"/register\">Back</a>`);
     res.end();
     return;
   }
-
+  // Checks if the username is already in use
   if (userLookup("username", req.body.username, users) !== null) {
     res.status(400).send(`Username is already in use <a href=\"/register\">Back</a>`);
     res.end();
     return;
   }
-
+  // Creates a new user in the database
   const userID = generateRandomString(urlDatabase, users);
   users[userID] = {
     id: userID,
@@ -247,6 +281,7 @@ app.post("/register", (req, res) => {
     email: req.body.email,
     password: bcrypt.hashSync(req.body.password, salt)
   };
+  // Logs the user in and sends them to the home page
   req.session.user_id = userID;
   res.redirect("/");
 });
