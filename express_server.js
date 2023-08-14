@@ -2,7 +2,7 @@ const express = require("express");
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 const morgan = require('morgan');
-const { generateRandomString, isValidURL, userLookup, urlsForUser } = require("./helpers");
+const { generateRandomString, userLookup, urlsForUser } = require("./helpers");
 
 const app = express();
 const PORT = 8080; // default port 8080
@@ -157,20 +157,15 @@ app.post("/urls", (req, res) => {
     res.end();
     return;
   }
-  // Checks if the URL is valid
-  if (!isValidURL(req.body.longURL)) {
-    res.send(`Invalid URL <a href=\"/urls/new\">Back</a>`);
-    res.end();
-    return;
-  } else {
-    // Creates a new short url
-    const shortURL = generateRandomString(urlDatabase, users);
-    urlDatabase[shortURL] = {
-      "longURL": req.body.longURL,
-      "userID": req.session.user_id
-    };
-    res.redirect(`/urls/${shortURL}`);
-  }
+
+  // Creates a new short url
+  const shortURL = generateRandomString(urlDatabase, users);
+  urlDatabase[shortURL] = {
+    "longURL": req.body.longURL,
+    "userID": req.session.user_id
+  };
+  res.redirect(`/urls/${shortURL}`);
+
 });
 
 // Edits a URL
@@ -193,16 +188,11 @@ app.post("/urls/:id", (req, res) => {
     res.end();
     return;
   }
-  // Checks if the new URL is valid
-  if (!isValidURL(req.body.longURL)) {
-    res.send(`Invalid URL <a href=\"/urls/${req.params.id}\">Back</a>`);
-    res.end();
-    return;
-  } else {
-    // Updates the URL
-    urlDatabase[req.params.id] = req.body.longURL;
-    res.redirect("/urls");
-  }
+
+  // Updates the URL
+  urlDatabase[req.params.id]["longURL"] = req.body.longURL;
+  res.redirect("/urls");
+
 });
 
 // Removes a URL

@@ -8,16 +8,18 @@ const generateRandomString = (urlDatabase, users) => {
 };
 
 //Checks if the URL is valid
-const isValidURL = (url) => {
-  let testURL;
+// Not required
+// const isValidURL = (url) => {
+//   let testURL;
 
-  try {
-    testURL = new URL(url);
-  } catch (_) {
-    return false;
-  }
-  return true;
-};
+//   try {
+//     testURL = new URL(url);
+//   } catch (_) {
+//     return false;
+//   }
+//   return true;
+// };
+
 // returns the user if the provided key has the provided value
 const userLookup = (key, value, users) => {
   for (let user in users) {
@@ -40,7 +42,6 @@ const urlsForUser = (id, urlDatabase) => {
 
 module.exports = {
   generateRandomString,
-  isValidURL,
   userLookup,
   urlsForUser,
 };
