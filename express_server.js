@@ -2,6 +2,7 @@ const express = require("express");
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 const morgan = require('morgan');
+const { generateRandomString, isValidURL, userLookup, urlsForUser } = require("./helpers");
 
 const app = express();
 const PORT = 8080; // default port 8080
@@ -16,48 +17,6 @@ app.use(cookieSession({
 }));
 const salt = bcrypt.genSaltSync(10);
 
-
-const generateRandomString = () => {
-  randomString = Math.random().toString(36).slice(2, 8);
-  //Check that the random string is not already used in the database
-  if (!urlDatabase[randomString] && !users[randomString]) {
-    return randomString;
-  }
-  return generateRandomString();
-};
-
-//Checks if the URL is valid
-const isValidURL = (url) => {
-  let testURL;
-
-  try {
-    testURL = new URL(url);
-  } catch (_) {
-    return false;
-  }
-  return true;
-};
-// returns the user if the provided key has the provided value
-const userLookup = (key, value) => {
-  for (let user in users) {
-    if (users[user][key] === value) {
-      return user;
-    }
-  }
-  return null;
-};
-
-const urlsForUser = (id) => {
-  let userUrls = {};
-  for (let url in urlDatabase) {
-    if (urlDatabase[url]["userID"] === id) {
-      userUrls[url] = urlDatabase[url];
-    }
-  }
-  return userUrls;
-};
-
-
 const urlDatabase = {
   "b2xVn2": {
     longURL: "http://www.lighthouselabs.ca",
@@ -65,7 +24,7 @@ const urlDatabase = {
   },
   "9sm5xK": {
     longURL: "http://www.google.com",
-    userID: "sk4h7p"
+    userID: "k4hxc5"
   }
 };
 
@@ -74,20 +33,14 @@ const users = {
     id: "h5j3xa",
     username: "coolguy52",
     email: "fuze@gmail.com",
-    password: "tempest"
+    password: bcrypt.hashSync("tempest", salt)
   },
   "k4hxc5": {
     id: "k4hxc5",
     username: "Aurbur3",
     email: "chloe@hotmail.com",
-    password: "wolf"
+    password: bcrypt.hashSync("wolf", salt)
   },
-  "sk4h7p": {
-    id: "sk4h7p",
-    username: "Admin",
-    email: "noahm27@gmail.com",
-    password: "noah"
-  }
 };
 
 app.get("/", (req, res) => {
@@ -102,9 +55,8 @@ app.get("/urls", (req, res) => {
   }
   const templateVars = {
     user: users[req.session.user_id],
-    urls: urlsForUser(req.session.user_id)
+    urls: urlsForUser(req.session.user_id, urlDatabase)
   };
-  console.log(urlsForUser(req.session.user_id));
   res.render("urls_index", templateVars);
 });
 
@@ -193,7 +145,7 @@ app.post("/urls", (req, res) => {
     res.end();
     return;
   } else {
-    const shortURL = generateRandomString();
+    const shortURL = generateRandomString(urlDatabase, users);
     urlDatabase[shortURL] = req.body.longURL;
     res.redirect(`/urls/${shortURL}`);
   }
@@ -246,7 +198,7 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  const userID = userLookup("email", req.body.email);
+  const userID = userLookup("email", req.body.email, users);
   if (userID === null) {
     res.send(`Email not found <a href=\"/login\">Back</a>`);
     res.status(403);
@@ -276,19 +228,19 @@ app.post("/register", (req, res) => {
   //   res.redirect("/register");
   // }
 
-  if (userLookup("email", req.body.email) !== null) {
+  if (userLookup("email", req.body.email, users) !== null) {
     res.status(400).send(`Email is already in use <a href=\"/register\">Back</a>`);
     res.end();
     return;
   }
 
-  if (userLookup("username", req.body.username) !== null) {
+  if (userLookup("username", req.body.username, users) !== null) {
     res.status(400).send(`Username is already in use <a href=\"/register\">Back</a>`);
     res.end();
     return;
   }
 
-  const userID = generateRandomString();
+  const userID = generateRandomString(urlDatabase, users);
   users[userID] = {
     id: userID,
     username: req.body.username,
