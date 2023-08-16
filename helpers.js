@@ -1,5 +1,5 @@
 const generateRandomString = (urlDatabase, users) => {
-  randomString = Math.random().toString(36).slice(2, 8);
+  let randomString = Math.random().toString(36).slice(2, 8);
   //Check that the random string is not already used in the database
   if (!urlDatabase[randomString] && !users[randomString]) {
     return randomString;

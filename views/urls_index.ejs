@@ -29,12 +29,12 @@
           <% for (let id in urls) { %>
             <tr>
               <td>
-                <a href="/urls/u/<%= id %>">
+                <a href="/u/<%= id %>">
                   <%= id %>
                 </a>
               </td>
               <td>
-                <a href="/u/<%= urls[id].longURL %>">
+                <a href="/u/<%= id %>">
                   <%= urls[id].longURL %>
                 </a>
               </td>

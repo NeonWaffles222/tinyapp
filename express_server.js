@@ -54,11 +54,10 @@ app.get("/", (req, res) => {
 app.get("/urls", (req, res) => {
   // checks cookies to see if the user is logged in
   if (!req.session.user_id) {
-    res.send(`Please login or register to veiw URLs <a href=\"/login\">Login</a> <a href=\"/register\">Register</a>`);
+    res.send(`Please login or register to veiw URLs <a href="/login">Login</a> <a href="/register">Register</a>`);
     res.end();
     return;
   }
-  console.log(users[req.session.user_id]);
   const templateVars = {
     user: users[req.session.user_id],
     urls: urlsForUser(req.session.user_id, urlDatabase)
@@ -83,19 +82,19 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   // checks cookies to see if the user is logged in
   if (!req.session.user_id) {
-    res.send(`Please login or register to veiw URLs <a href=\"/login\">Login</a> <a href=\"/register\">Register</a>`);
+    res.send(`Please login or register to veiw URLs <a href="/login">Login</a> <a href="/register">Register</a>`);
     res.end();
     return;
   }
   // checks the database to make sure the requested URL exists
   if (!urlDatabase[req.params.id]) {
-    res.send(`This URL does not exist <a href=\"/urls\">Home</a>`);
+    res.send(`This URL does not exist <a href="/urls">Home</a>`);
     res.end();
     return;
   }
   // Checks if the user has permission to view this URL.
   if (req.session.user_id !== urlDatabase[req.params.id]["userID"]) {
-    res.send(`This URL does not belong to you <a href=\"/urls\">Home</a>`);
+    res.send(`This URL does not belong to you <a href="/urls">Home</a>`);
     res.end();
     return;
   }
@@ -137,10 +136,12 @@ app.get("/login", (req, res) => {
 app.get("/u/:id", (req, res) => {
   // checks the database to make sure the requested URL exists
   if (!urlDatabase[req.params.id]) {
-    res.send(`Short URL does not exist <a href=\"/urls\">Back</a>`);
+    res.send(`Short URL does not exist <a href="/urls">Back</a>`);
     res.end();
     return;
   }
+  // if the url is invalid it redirects to /u/longURL where it will
+  // check the longURL as an id and send that it does not exist
   const longURL = urlDatabase[req.params.id].longURL;
   res.redirect(longURL);
 });
@@ -154,7 +155,7 @@ app.get("/u/:id", (req, res) => {
 app.post("/urls", (req, res) => {
   // Checks if the user is logged in
   if (!req.session.user_id) {
-    res.send('Must be logged in to create urls <a href=\"/login\">Login</a>');
+    res.send('Must be logged in to create urls <a href="/login">Login</a>');
     res.end();
     return;
   }
@@ -165,6 +166,7 @@ app.post("/urls", (req, res) => {
     "longURL": req.body.longURL,
     "userID": req.session.user_id
   };
+  console.log(urlDatabase);
   res.redirect(`/urls/${shortURL}`);
 
 });
@@ -173,19 +175,19 @@ app.post("/urls", (req, res) => {
 app.post("/urls/:id", (req, res) => {
   // Checks if the user is logged in
   if (!req.session.user_id) {
-    res.send('Must be logged in <a href=\"/login\">Login</a>');
+    res.send('Must be logged in <a href="/login">Login</a>');
     res.end();
     return;
   }
   // Checks if the URL exists
   if (!urlDatabase[req.params.id]) {
-    res.send(`This URL does not exist <a href=\"/urls\">Home</a>`);
+    res.send(`This URL does not exist <a href="/urls">Home</a>`);
     res.end();
     return;
   }
   // Checks if the user has permission to edit this URL.
   if (req.session.user_id !== urlDatabase[req.params.id]["userID"]) {
-    res.send(`This URL does not belong to you <a href=\"/urls\">Home</a>`);
+    res.send(`This URL does not belong to you <a href="/urls">Home</a>`);
     res.end();
     return;
   }
@@ -200,19 +202,19 @@ app.post("/urls/:id", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
   // Checks if the user is logged in
   if (!req.session.user_id) {
-    res.send('Must be logged in <a href=\"/login\">Login</a>');
+    res.send('Must be logged in <a href="/login">Login</a>');
     res.end();
     return;
   }
   // Checks if the URL exists
   if (!urlDatabase[req.params.id]) {
-    res.send(`This URL does not exist <a href=\"/urls\">Home</a>`);
+    res.send(`This URL does not exist <a href="/urls">Home</a>`);
     res.end();
     return;
   }
   // Checks if the user has permission to delete this URL.
   if (req.session.user_id !== urlDatabase[req.params.id]["userID"]) {
-    res.send(`This URL does not belong to you <a href=\"/urls\">Home</a>`);
+    res.send(`This URL does not belong to you <a href="/urls">Home</a>`);
     res.end();
     return;
   }
@@ -225,14 +227,14 @@ app.post("/login", (req, res) => {
   const userID = userLookup("email", req.body.email, users);
   // Checks if the user exists
   if (userID === null) {
-    res.send(`Email not found <a href=\"/login\">Back</a>`);
+    res.send(`Email not found <a href="/login">Back</a>`);
     res.status(403);
     res.end();
     return;
   }
   // Checks if the passwords match
   if (!bcrypt.compareSync(req.body.password, userID.password)) {
-    res.send(`Wrong password <a href=\"/login\">Back</a>`);
+    res.send(`Wrong password <a href="/login">Back</a>`);
     res.status(403);
     res.end();
     return;
@@ -257,13 +259,13 @@ app.post("/register", (req, res) => {
 
   // Checks if the email is already in use
   if (userLookup("email", req.body.email, users) !== null) {
-    res.status(400).send(`Email is already in use <a href=\"/register\">Back</a>`);
+    res.status(400).send(`Email is already in use <a href="/register">Back</a>`);
     res.end();
     return;
   }
   // Checks if the username is already in use
   if (userLookup("username", req.body.username, users) !== null) {
-    res.status(400).send(`Username is already in use <a href=\"/register\">Back</a>`);
+    res.status(400).send(`Username is already in use <a href="/register">Back</a>`);
     res.end();
     return;
   }
