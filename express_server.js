@@ -58,6 +58,7 @@ app.get("/urls", (req, res) => {
     res.end();
     return;
   }
+  console.log(users[req.session.user_id]);
   const templateVars = {
     user: users[req.session.user_id],
     urls: urlsForUser(req.session.user_id, urlDatabase)
@@ -230,14 +231,14 @@ app.post("/login", (req, res) => {
     return;
   }
   // Checks if the passwords match
-  if (!bcrypt.compareSync(req.body.password, users[userID]["password"])) {
+  if (!bcrypt.compareSync(req.body.password, userID.password)) {
     res.send(`Wrong password <a href=\"/login\">Back</a>`);
     res.status(403);
     res.end();
     return;
   }
   // creates a new cookie for the user
-  req.session.user_id = userID;
+  req.session.user_id = userID.id;
   res.redirect("/urls");
 });
 
